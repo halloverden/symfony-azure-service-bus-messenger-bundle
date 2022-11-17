@@ -1,0 +1,5 @@
+services:
+  hallo_verden.azure_service_bus_messenger.transport_factory:
+    class: HalloVerden\AzureServiceBusMessengerBundle\Transport\AzureServiceBusTransportFactory
+    tags:
+      - { name: messenger.transport_factory }

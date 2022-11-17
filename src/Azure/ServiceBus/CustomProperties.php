@@ -44,14 +44,14 @@ final class CustomProperties implements \ArrayAccess, \IteratorAggregate {
    * @inheritDoc
    */
   public function offsetExists(mixed $offset): bool {
-    return \array_key_exists($this->keyToLower($offset), $this->properties);
+    return \array_key_exists($this->normalizeOffset($offset), $this->properties);
   }
 
   /**
    * @inheritDoc
    */
   public function offsetGet(mixed $offset): mixed {
-    return $this->properties[$this->keyToLower($offset)] ?? null;
+    return $this->properties[$this->normalizeOffset($offset)] ?? null;
   }
 
   /**
@@ -63,7 +63,7 @@ final class CustomProperties implements \ArrayAccess, \IteratorAggregate {
       return;
     }
 
-    $this->properties[$this->keyToLower($offset)] = $value;
+    $this->properties[$this->normalizeOffset($offset)] = $value;
     $this->originalProperties[$offset] = $value;
   }
 
@@ -71,10 +71,10 @@ final class CustomProperties implements \ArrayAccess, \IteratorAggregate {
    * @inheritDoc
    */
   public function offsetUnset(mixed $offset): void {
-    unset($this->properties[$offset = $this->keyToLower($offset)]);
+    unset($this->properties[$offset = $this->normalizeOffset($offset)]);
 
     foreach ($this->originalProperties as $key => $value) {
-      if ($this->keyToLower($key) === $offset) {
+      if ($this->normalizeOffset($key) === $offset) {
         unset($this->originalProperties[$key]);
       }
     }
@@ -92,7 +92,7 @@ final class CustomProperties implements \ArrayAccess, \IteratorAggregate {
    *
    * @return mixed
    */
-  private function keyToLower(mixed $offset): mixed {
+  private function normalizeOffset(mixed $offset): mixed {
     if (\is_string($offset)) {
       return \strtolower($offset);
     }

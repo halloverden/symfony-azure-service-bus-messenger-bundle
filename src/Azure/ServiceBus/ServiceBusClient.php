@@ -48,7 +48,7 @@ final class ServiceBusClient {
       $query['timeout'] = $timeout;
     }
 
-    $response = $this->client->request($receiveMode->getMethod(), $url, [
+    $response = $this->client->request($receiveMode->getHttpMethod(), $url, [
       'headers' => [
         'Authorization' => $this->sasTokenFactory->create($url)
       ],

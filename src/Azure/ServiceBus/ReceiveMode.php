@@ -11,7 +11,7 @@ enum ReceiveMode {
   /**
    * @return string
    */
-  public function getMethod(): string {
+  public function getHttpMethod(): string {
     return match ($this) {
       self::RECEIVE_AND_DELETE => Request::METHOD_DELETE,
       self::PEEK_LOCK => Request::METHOD_POST,

@@ -32,9 +32,8 @@ class AzureServiceBusSender implements SenderInterface {
 
     $brokerProperties = new BrokerProperties();
 
-    /** @var DelayStamp|null $delayStamp */
     $delayStamp = $envelope->last(DelayStamp::class);
-    if (null !== $delayStamp) {
+    if ($delayStamp instanceof DelayStamp) {
       $brokerProperties->setScheduledEnqueueTimeUtc(new \DateTimeImmutable('@' . time() + intval($delayStamp->getDelay() / 1000)));
     }
 
@@ -43,16 +42,34 @@ class AzureServiceBusSender implements SenderInterface {
     }
 
     try {
-      $this->connection->send(new BrokeredMessage(
-        $encodedMessage['body'],
-        $brokerProperties,
-        new CustomProperties([Connection::MESSAGE_ATTRIBUTE_NAME => \json_encode($encodedMessage['headers'] ?? [])])
-      ));
+      $this->connection->send(
+        new BrokeredMessage(
+          $encodedMessage['body'],
+          $brokerProperties,
+          new CustomProperties([Connection::MESSAGE_ATTRIBUTE_NAME => \json_encode($encodedMessage['headers'] ?? [])])
+        ),
+        $this->getEntityPath($envelope)
+      );
     } catch (ExceptionInterface $e) {
       throw new TransportException($e->getMessage(), previous: $e);
     }
 
     return $envelope;
+  }
+
+  /**
+   * @param Envelope $envelope
+   *
+   * @return string|null
+   */
+  private function getEntityPath(Envelope $envelope): ?string {
+    $entityPathStamp = $envelope->last(AzureServiceBusEntityPathStamp::class);
+
+    if ($entityPathStamp instanceof AzureServiceBusEntityPathStamp) {
+      return $entityPathStamp->getEntityPath();
+    }
+
+    return null;
   }
 
 }

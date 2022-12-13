@@ -3,14 +3,13 @@
 namespace HalloVerden\AzureServiceBusMessengerBundle\Transport;
 
 use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
-use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
+use Symfony\Component\Messenger\Transport\Receiver\QueueReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
-class AzureServiceBusTransport implements TransportInterface {
-  private ?ReceiverInterface $receiver = null;
-  private ?SenderInterface $sender = null;
+class AzureServiceBusTransport implements TransportInterface, QueueReceiverInterface {
+  private ?AzureServiceBusReceiver $receiver = null;
+  private ?AzureServiceBusSender $sender = null;
 
   /**
    * AzureServiceBusTransport constructor.
@@ -44,22 +43,30 @@ class AzureServiceBusTransport implements TransportInterface {
 
   /**
    * @inheritDoc
+   * @throws \Exception
    */
   public function send(Envelope $envelope): Envelope {
     return $this->getSender()->send($envelope);
   }
 
   /**
-   * @return ReceiverInterface
+   * @inheritDoc
    */
-  private function getReceiver(): ReceiverInterface {
+  public function getFromQueues(array $queueNames): iterable {
+    return $this->getReceiver()->getFromQueues($queueNames);
+  }
+
+  /**
+   * @return AzureServiceBusReceiver
+   */
+  private function getReceiver(): AzureServiceBusReceiver {
     return $this->receiver ??= new AzureServiceBusReceiver($this->connection, $this->serializer);
   }
 
   /**
-   * @return SenderInterface
+   * @return AzureServiceBusSender
    */
-  private function getSender(): SenderInterface {
+  private function getSender(): AzureServiceBusSender {
     return $this->sender ??= new AzureServiceBusSender($this->connection, $this->serializer);
   }
 

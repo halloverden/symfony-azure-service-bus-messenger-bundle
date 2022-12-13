@@ -6,6 +6,7 @@ use HalloVerden\AzureServiceBusMessengerBundle\Azure\ServiceBus\BrokeredMessage;
 use HalloVerden\AzureServiceBusMessengerBundle\Azure\ServiceBus\ServiceBusClient;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\Messenger\Exception\InvalidArgumentException;
+use Symfony\Component\Messenger\Exception\TransportException;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -26,7 +27,7 @@ final class Connection {
    */
   public function __construct(
     private readonly ServiceBusClient $client,
-    private readonly string $entityPath,
+    private readonly ?string $entityPath = null,
     private readonly ?string $subscription = null,
     private readonly ?int $waitTime = null
   ) {
@@ -65,7 +66,7 @@ final class Connection {
 
     $sharedAccessKeyName = $options['shared_access_key_name'];
     $sharedAccessKey = $options['shared_access_key'] ?? new InvalidArgumentException('The given Azure Service Bus DSN must contain a shared access key (shared_access_key={key})');
-    $entityPath = $options['entity_path'] ?? $options['transport_name'] ?? new InvalidArgumentException('The given Azure Service Bus DSN must contain an entity path (entity_path={entity_path})');
+    $entityPath = $options['entity_path'] ?? $options['transport_name'] ?? null;
     $subscription = $options['subscription'] ?? null;
     $waitTime = $options['wait_time'] ?? null;
 
@@ -88,21 +89,26 @@ final class Connection {
   }
 
   /**
+   * @param string|null $entityPath
+   *
    * @return BrokeredMessage|null
    * @throws ExceptionInterface
    */
-  public function get(): ?BrokeredMessage {
-    return $this->client->receiveMessage($this->entityPath, $this->subscription, $this->waitTime);
+  public function get(?string $entityPath = null): ?BrokeredMessage {
+    $entityPath = $entityPath ?? $this->entityPath ?? throw new TransportException('entityPath not found');
+    return $this->client->receiveMessage($entityPath, $this->subscription, $this->waitTime)?->setEntityPath($entityPath);
   }
 
   /**
    * @param BrokeredMessage $brokeredMessage
+   * @param string|null     $entityPath
    *
    * @return void
    * @throws ExceptionInterface
    */
-  public function send(BrokeredMessage $brokeredMessage): void {
-    $this->client->sendMessage($this->entityPath, $brokeredMessage);
+  public function send(BrokeredMessage $brokeredMessage, ?string $entityPath = null): void {
+    $entityPath = $entityPath ?? $this->entityPath ?? throw new TransportException('entityPath not found');
+    $this->client->sendMessage($entityPath, $brokeredMessage);
   }
 
   /**

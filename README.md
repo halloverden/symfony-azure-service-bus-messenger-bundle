@@ -60,7 +60,7 @@ The transport has a number of options:
 | subscription           | Name of subscription             |                           |
 | wait_time              | Long polling duration in seconds |                           |
 
-You can change the `entity_path` runtime using the `AzureServiceBusEntityPathStamp`:
+You can change the `entity_path` at runtime using the `AzureServiceBusEntityPathStamp`:
 ```php
 $eventBus->dispatch($someMessage, [new AzureServiceBusEntityPathStamp('someEntityPath')]);
 ```

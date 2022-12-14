@@ -2,15 +2,17 @@
 
 namespace HalloVerden\AzureServiceBusMessengerBundle\Transport;
 
-use HalloVerden\AzureServiceBusMessengerBundle\Azure\ServiceBus\CustomProperties;
+use HalloVerden\AzureServiceBusMessengerBundle\Azure\ServiceBus\BrokeredMessage;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\LogicException;
 use Symfony\Component\Messenger\Exception\TransportException;
+use Symfony\Component\Messenger\Transport\Receiver\QueueReceiverInterface;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 
-class AzureServiceBusReceiver implements ReceiverInterface {
+class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterface {
+  public const ENTITY_PATH_HEADER = 'X-ASB-Entity-Path';
 
   /**
    * AzureServiceBusReceiver constructor.
@@ -25,22 +27,7 @@ class AzureServiceBusReceiver implements ReceiverInterface {
    * @inheritDoc
    */
   public function get(): iterable {
-    try {
-      $brokerMessage = $this->connection->get();
-    } catch (ExceptionInterface $e) {
-      throw new TransportException($e->getMessage(), previous: $e);
-    }
-
-    if (null === $brokerMessage) {
-      return;
-    }
-
-    $envelope = $this->serializer->decode([
-      'body' => $brokerMessage->getBody(),
-      'headers' => $this->createHeaders($brokerMessage->getCustomProperties())
-    ]);
-
-    yield $envelope->with(new AzureServiceBusReceivedStamp($brokerMessage->getBrokerProperties(), $brokerMessage->getCustomProperties()));
+    yield from $this->getEnvelope();
   }
 
   /**
@@ -68,6 +55,39 @@ class AzureServiceBusReceiver implements ReceiverInterface {
   }
 
   /**
+   * @inheritDoc
+   */
+  public function getFromQueues(array $queueNames): iterable {
+    foreach ($queueNames as $queueName) {
+      yield from $this->getEnvelope($queueName);
+    }
+  }
+
+  /**
+   * @param string|null $queueName
+   *
+   * @return iterable
+   */
+  private function getEnvelope(?string $queueName = null): iterable {
+    try {
+      $brokerMessage = $this->connection->get($queueName);
+    } catch (ExceptionInterface $e) {
+      throw new TransportException($e->getMessage(), previous: $e);
+    }
+
+    if (null === $brokerMessage) {
+      return;
+    }
+
+    $envelope = $this->serializer->decode([
+      'body' => $brokerMessage->getBody(),
+      'headers' => $this->createHeaders($brokerMessage)
+    ]);
+
+    yield $envelope->with(new AzureServiceBusReceivedStamp($brokerMessage->getBrokerProperties(), $brokerMessage->getCustomProperties()));
+  }
+
+  /**
    * @param Envelope $envelope
    *
    * @return AzureServiceBusReceivedStamp
@@ -83,12 +103,13 @@ class AzureServiceBusReceiver implements ReceiverInterface {
   }
 
   /**
-   * @param CustomProperties $customProperties
+   * @param BrokeredMessage $brokeredMessage
    *
    * @return array
    */
-  private function createHeaders(CustomProperties $customProperties): array {
-    return json_decode($customProperties[Connection::MESSAGE_ATTRIBUTE_NAME] ?? [], true);
+  private function createHeaders(BrokeredMessage $brokeredMessage): array {
+    $customProperties = $brokeredMessage->getCustomProperties();
+    return json_decode($customProperties[Connection::MESSAGE_ATTRIBUTE_NAME] ?? [], true) + [self::ENTITY_PATH_HEADER => $brokeredMessage->getEntityPath()];
   }
 
 }

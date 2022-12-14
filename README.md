@@ -59,3 +59,13 @@ The transport has a number of options:
 | entity_path            | Topic or Queue                   | name of transport         |
 | subscription           | Name of subscription             |                           |
 | wait_time              | Long polling duration in seconds |                           |
+
+You can change the `entity_path` at runtime using the `AzureServiceBusEntityPathStamp`:
+```php
+$eventBus->dispatch($someMessage, [new AzureServiceBusEntityPathStamp('someEntityPath')]);
+```
+
+You can control the `entity_path` used on consume with:
+```
+php bin/console messenger:consume my_transport --queues=someEntityPath
+```

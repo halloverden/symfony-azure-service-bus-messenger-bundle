@@ -3,6 +3,7 @@
 namespace HalloVerden\AzureServiceBusMessengerBundle\Azure\ServiceBus;
 
 class BrokeredMessage {
+  private ?string $entityPath = null;
 
   /**
    * BrokeredMessage constructor.
@@ -33,6 +34,23 @@ class BrokeredMessage {
    */
   public function getCustomProperties(): CustomProperties {
     return $this->customProperties;
+  }
+
+  /**
+   * @return string|null
+   */
+  public function getEntityPath(): ?string {
+    return $this->entityPath;
+  }
+
+  /**
+   * @param string|null $entityPath
+   *
+   * @return BrokeredMessage
+   */
+  public function setEntityPath(?string $entityPath): BrokeredMessage {
+    $this->entityPath = $entityPath;
+    return $this;
   }
 
 }

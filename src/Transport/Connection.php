@@ -95,7 +95,7 @@ final class Connection {
    * @throws ExceptionInterface
    */
   public function get(?string $entityPath = null): ?BrokeredMessage {
-    $entityPath = $entityPath ?? $this->entityPath ?? throw new TransportException('entityPath not found');
+    $entityPath ??= $this->entityPath ?? throw new TransportException('entityPath not found');
     return $this->client->receiveMessage($entityPath, $this->subscription, $this->waitTime)?->setEntityPath($entityPath);
   }
 
@@ -107,19 +107,21 @@ final class Connection {
    * @throws ExceptionInterface
    */
   public function send(BrokeredMessage $brokeredMessage, ?string $entityPath = null): void {
-    $entityPath = $entityPath ?? $this->entityPath ?? throw new TransportException('entityPath not found');
+    $entityPath ??= $this->entityPath ?? throw new TransportException('entityPath not found');
     $this->client->sendMessage($entityPath, $brokeredMessage);
   }
 
   /**
-   * @param string $messageIdOrSequenceNumber
-   * @param string $lockToken
+   * @param string      $messageIdOrSequenceNumber
+   * @param string      $lockToken
+   * @param string|null $entityPath
    *
    * @return void
    * @throws ExceptionInterface
    */
-  public function delete(string $messageIdOrSequenceNumber, string $lockToken): void {
-    $this->client->deleteMessage($this->entityPath, $messageIdOrSequenceNumber, $lockToken, $this->subscription);
+  public function delete(string $messageIdOrSequenceNumber, string $lockToken, string $entityPath = null): void {
+    $entityPath ??= $this->entityPath ?? throw new TransportException('entityPath not found');
+    $this->client->deleteMessage($entityPath, $messageIdOrSequenceNumber, $lockToken, $this->subscription);
   }
 
 }

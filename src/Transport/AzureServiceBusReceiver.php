@@ -84,7 +84,7 @@ class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterfa
       'headers' => $this->createHeaders($brokerMessage)
     ]);
 
-    yield $envelope->with(new AzureServiceBusReceivedStamp($brokerMessage->getBrokerProperties(), $brokerMessage->getCustomProperties()));
+    yield $envelope->with(new AzureServiceBusReceivedStamp($brokerMessage->getBrokerProperties(), $brokerMessage->getCustomProperties(), $brokerMessage->getEntityPath()));
   }
 
   /**

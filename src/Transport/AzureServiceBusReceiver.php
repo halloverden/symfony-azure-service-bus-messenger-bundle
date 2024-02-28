@@ -40,7 +40,7 @@ class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterfa
       $this->connection->delete(
         $brokerProperties->getSequenceNumber() ?? $brokerProperties->getMessageId(),
         $brokerProperties->getLockToken(),
-        $receivedStamp->getEntityPath()
+        $this->findAzureServiceBusEntityPathStamp($envelope)->getEntityPath()
       );
     } catch (ExceptionInterface $e) {
       throw new TransportException($e->getMessage(), previous: $e);
@@ -57,7 +57,7 @@ class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterfa
       $this->connection->delete(
         $brokerProperties->getSequenceNumber() ?? $brokerProperties->getMessageId(),
         $brokerProperties->getLockToken(),
-        $receivedStamp->getEntityPath()
+        $this->findAzureServiceBusEntityPathStamp($envelope)->getEntityPath()
       );
     } catch (ExceptionInterface $e) {
       throw new TransportException($e->getMessage(), previous: $e);
@@ -94,7 +94,9 @@ class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterfa
       'headers' => $this->createHeaders($brokerMessage)
     ]);
 
-    yield $envelope->with(new AzureServiceBusReceivedStamp($brokerMessage->getBrokerProperties(), $brokerMessage->getCustomProperties(), $brokerMessage->getEntityPath()));
+    yield $envelope
+      ->with(new AzureServiceBusReceivedStamp($brokerMessage->getBrokerProperties(), $brokerMessage->getCustomProperties()))
+      ->with(new AzureServiceBusEntityPathStamp($brokerMessage->getEntityPath()));
   }
 
   /**
@@ -107,6 +109,21 @@ class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterfa
 
     if (!$stamp instanceof AzureServiceBusReceivedStamp) {
       throw new LogicException('No AzureServiceBusReceivedStamp found in Envelope');
+    }
+
+    return $stamp;
+  }
+
+  /**
+   * @param Envelope $envelope
+   *
+   * @return AzureServiceBusEntityPathStamp|null
+   */
+  private function findAzureServiceBusEntityPathStamp(Envelope $envelope): ?AzureServiceBusEntityPathStamp {
+    $stamp = $envelope->last(AzureServiceBusEntityPathStamp::class);
+
+    if (!$stamp instanceof AzureServiceBusEntityPathStamp) {
+      throw new LogicException('No AzureServiceBusEntityPathStamp found in Envelope');
     }
 
     return $stamp;

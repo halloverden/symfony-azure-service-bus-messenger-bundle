@@ -9,15 +9,13 @@ use Symfony\Component\Messenger\Stamp\NonSendableStampInterface;
 class AzureServiceBusReceivedStamp implements NonSendableStampInterface {
   private BrokerProperties $brokerProperties;
   private CustomProperties $customProperties;
-  private string $entityPath;
 
   /**
    * AzureServiceBusReceivedStamp constructor.
    */
-  public function __construct(BrokerProperties $brokerProperties, CustomProperties $customProperties, string $entityPath) {
+  public function __construct(BrokerProperties $brokerProperties, CustomProperties $customProperties) {
     $this->brokerProperties = $brokerProperties;
     $this->customProperties = $customProperties;
-    $this->entityPath = $entityPath;
   }
 
   /**

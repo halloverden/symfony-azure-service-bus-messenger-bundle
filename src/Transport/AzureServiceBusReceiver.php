@@ -136,7 +136,7 @@ class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterfa
    */
   private function createHeaders(BrokeredMessage $brokeredMessage): array {
     $customProperties = $brokeredMessage->getCustomProperties();
-    return json_decode($customProperties[Connection::MESSAGE_ATTRIBUTE_NAME] ?? [], true) + [self::ENTITY_PATH_HEADER => $brokeredMessage->getEntityPath()];
+    return json_decode($customProperties[Connection::MESSAGE_ATTRIBUTE_NAME] ?? '{}', true) + [self::ENTITY_PATH_HEADER => $brokeredMessage->getEntityPath()];
   }
 
 }

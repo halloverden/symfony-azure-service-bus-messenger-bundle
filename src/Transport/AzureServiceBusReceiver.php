@@ -34,9 +34,14 @@ class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterfa
    * @inheritDoc
    */
   public function ack(Envelope $envelope): void {
-    $brokerProperties = $this->findAzureServiceBusReceivedStamp($envelope)->getBrokerProperties();
+    $receivedStamp = $this->findAzureServiceBusReceivedStamp($envelope);
+    $brokerProperties = $receivedStamp->getBrokerProperties();
     try {
-      $this->connection->delete($brokerProperties->getSequenceNumber() ?? $brokerProperties->getMessageId(), $brokerProperties->getLockToken());
+      $this->connection->delete(
+        $brokerProperties->getSequenceNumber() ?? $brokerProperties->getMessageId(),
+        $brokerProperties->getLockToken(),
+        $this->findAzureServiceBusEntityPathStamp($envelope)->getEntityPath()
+      );
     } catch (ExceptionInterface $e) {
       throw new TransportException($e->getMessage(), previous: $e);
     }
@@ -46,9 +51,14 @@ class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterfa
    * @inheritDoc
    */
   public function reject(Envelope $envelope): void {
-    $brokerProperties = $this->findAzureServiceBusReceivedStamp($envelope)->getBrokerProperties();
+    $receivedStamp = $this->findAzureServiceBusReceivedStamp($envelope);
+    $brokerProperties = $receivedStamp->getBrokerProperties();
     try {
-      $this->connection->delete($brokerProperties->getSequenceNumber() ?? $brokerProperties->getMessageId(), $brokerProperties->getLockToken());
+      $this->connection->delete(
+        $brokerProperties->getSequenceNumber() ?? $brokerProperties->getMessageId(),
+        $brokerProperties->getLockToken(),
+        $this->findAzureServiceBusEntityPathStamp($envelope)->getEntityPath()
+      );
     } catch (ExceptionInterface $e) {
       throw new TransportException($e->getMessage(), previous: $e);
     }
@@ -84,7 +94,9 @@ class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterfa
       'headers' => $this->createHeaders($brokerMessage)
     ]);
 
-    yield $envelope->with(new AzureServiceBusReceivedStamp($brokerMessage->getBrokerProperties(), $brokerMessage->getCustomProperties()));
+    yield $envelope
+      ->with(new AzureServiceBusReceivedStamp($brokerMessage->getBrokerProperties(), $brokerMessage->getCustomProperties()))
+      ->with(new AzureServiceBusEntityPathStamp($brokerMessage->getEntityPath()));
   }
 
   /**
@@ -103,13 +115,28 @@ class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterfa
   }
 
   /**
+   * @param Envelope $envelope
+   *
+   * @return AzureServiceBusEntityPathStamp|null
+   */
+  private function findAzureServiceBusEntityPathStamp(Envelope $envelope): ?AzureServiceBusEntityPathStamp {
+    $stamp = $envelope->last(AzureServiceBusEntityPathStamp::class);
+
+    if (!$stamp instanceof AzureServiceBusEntityPathStamp) {
+      throw new LogicException('No AzureServiceBusEntityPathStamp found in Envelope');
+    }
+
+    return $stamp;
+  }
+
+  /**
    * @param BrokeredMessage $brokeredMessage
    *
    * @return array
    */
   private function createHeaders(BrokeredMessage $brokeredMessage): array {
     $customProperties = $brokeredMessage->getCustomProperties();
-    return json_decode($customProperties[Connection::MESSAGE_ATTRIBUTE_NAME] ?? [], true) + [self::ENTITY_PATH_HEADER => $brokeredMessage->getEntityPath()];
+    return json_decode($customProperties[Connection::MESSAGE_ATTRIBUTE_NAME] ?? '{}', true) + [self::ENTITY_PATH_HEADER => $brokeredMessage->getEntityPath()];
   }
 
 }

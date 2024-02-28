@@ -32,11 +32,4 @@ class AzureServiceBusReceivedStamp implements NonSendableStampInterface {
     return $this->customProperties;
   }
 
-  /**
-   * @return string
-   */
-  public function getEntityPath(): string {
-    return $this->entityPath;
-  }
-
 }

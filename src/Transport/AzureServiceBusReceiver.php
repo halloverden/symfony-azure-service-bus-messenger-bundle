@@ -91,7 +91,8 @@ class AzureServiceBusReceiver implements ReceiverInterface, QueueReceiverInterfa
 
     $envelope = $this->serializer->decode([
       'body' => $brokerMessage->getBody(),
-      'headers' => $this->createHeaders($brokerMessage)
+      'headers' => $this->createHeaders($brokerMessage),
+      'customProperties' => iterator_to_array($brokerMessage->getCustomProperties())
     ]);
 
     yield $envelope
